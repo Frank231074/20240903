@@ -5,6 +5,19 @@ from PIL import Image, ImageTk
 import requests
 from io import BytesIO
 
+def show_top_three():
+    
+    conn = sqlite3.connect("pokemon.db")
+    c = conn.cursor()
+
+    c.execute("SELECT name, count FROM pokemon ORDER BY count DESC LIMIT 3")
+
+    top_three = c.fetchall()
+
+    top1_label.config(text=f"１位：{top_three[0][0]} - {top_three[0][1]}回")
+    top2_label.config(text=f"２位：{top_three[1][0]} - {top_three[1][1]}回")
+    top3_label.config(text=f"３位：{top_three[2][0]} - {top_three[2][1]}回")
+
 
 def show_pokemon_info():
     name = name_entry.get()
@@ -12,15 +25,18 @@ def show_pokemon_info():
     conn = sqlite3.connect("pokemon.db")
     c = conn.cursor()
 
-    c.execute("SELECT type1, type2, hp, image_url FROM pokemon WHERE name = ?", (name,))
+    c.execute("SELECT type1, type2, hp, image_url, count FROM pokemon WHERE name = ?", (name,))
 
     row = c.fetchone()
 
-    conn.close()
+
 
     if row:
-        type1, type2, hp, image_url = row
+        type1, type2, hp, image_url, count = row
 
+        c.execute("UPDATE pokemon SET count = ? WHERE name = ?",(count + 1, name))
+        conn.commit()
+        
         name_label.config(text=f"名前：{name}")
         type1_label.config(text=f"タイプ１：{type1}")
         if type2:
@@ -44,6 +60,9 @@ def show_pokemon_info():
         image_label.config(text="")
         image_label.image = None
 
+    conn.close()
+
+    show_top_three()
 
 root = tk.Tk()
 root.title("ポケモン情報表示")
@@ -66,5 +85,15 @@ hp_label.pack(padx=20, pady=10)
 
 image_label = Label(root)
 image_label.pack(padx=20, pady=10)
+
+
+top1_label = Label(root, font="Arial, 14")
+top1_label.pack(padx=20, pady=5)
+top2_label = Label(root, font="Arial, 14")
+top2_label.pack(padx=20, pady=5)
+top3_label = Label(root, font="Arial, 14")
+top3_label.pack(padx=20, pady=5)
+
+show_top_three()
 
 root.mainloop()
